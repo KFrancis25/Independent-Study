@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Note</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Note</h1>
+    <textarea id="note-content" placeholder="Type your note here..."></textarea>
+    <button id="save-note-btn" class="btn">Save Note</button>
+  </div>
+  <script>
+    const noteContent = document.getElementById('note-content');
+    const saveNoteBtn = document.getElementById('save-note-btn');
+
+    let notes = [];
+
+    // Load notes from file on page load
+    loadNotes();
+
+    // Save notes to file when button is clicked
+    saveNoteBtn.addEventListener('click', saveNotes);
+
+    function saveNotes() {
+      const note = {
+        id: Date.now(),
+        title: 'Untitled',
+        content: noteContent.value
+      };
+      notes.push(note);
+      noteContent.value = '';
+
+      // Create a hash of the notes data
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(JSON.stringify(notes));
+      const hashedData = hash.digest('hex');
+
+      // Save the hashed data to a JSON file
+      const fs = require('fs');
+      const fileName = 'notes.json';
+      fs.writeFileSync(fileName, JSON.stringify({ data: hashedData }));
+      console.log(`Notes saved to ${fileName}`);
+    }
+
+    function loadNotes() {
+      // Read the JSON file
+      const fs = require('fs');
+      const fileName = 'notes.json';
+      try {
+        const fileData = fs.readFileSync(fileName, 'utf8');
+        const jsonData = JSON.parse(fileData);
+
+        // Extract the hashed data
+        const hashedData = jsonData.data;
+
+        // Verify the hashed data
+        const crypto = require('crypto');
+        const hash = crypto.createHash('sha256');
+        hash.update(JSON.stringify(notes));
+        const expectedHash = hash.digest('hex');
+        if (hashedData === expectedHash) {
+          console.log('Notes loaded and verified successfully!');
+          notes = JSON.parse(jsonData.data);
+          displayNotes();
+        } else {
+          console.error('Error: Hash mismatch. Data may be corrupted or tampered with.');
+        }
+      } catch (err) {
+        console.log('No notes file found. Creating a new one.');
+      }
+    }
+
+    function displayNotes() {
+      const noteList = document.getElementById('note-list');
+      noteList.innerHTML = '';
+      notes.forEach((note) => {
+        const noteElement = document.createElement('div');
+        noteElement.textContent = `${note.title}: ${note.content}`;
+        noteList.appendChild(noteElement);
+      });
+    }
+  </script>
+  <div id="note-list"></div>
+</body>
+</html>
